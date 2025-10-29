@@ -5,6 +5,7 @@ import logging
 from datetime import datetime, timedelta
 from airflow.decorators import dag, task
 
+
 logger = logging.getLogger(__name__)
 
 STUDENT_ID = "xhh6fb"
