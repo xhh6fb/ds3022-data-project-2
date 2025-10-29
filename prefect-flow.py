@@ -14,8 +14,8 @@ SUBMISSION_QUEUE = "https://sqs.us-east-1.amazonaws.com/440848399208/dp2-submit"
 @task(retries=2)
 def trigger_message_scatter():
     """
-    Step 1: Hit the API to scatter 21 messages into my SQS queue
-    The API returns my personal queue URL
+    step 1 (hit the API to scatter 21 messages into my SQS queue):
+    the API returns my personal queue URL
     """
     logger = get_run_logger()
     logger.info(f"Triggering message scatter for {COMPUTING_ID}")
@@ -39,8 +39,8 @@ def trigger_message_scatter():
 @task
 def check_queue_metrics(queue_url):
     """
-    Helper to check how many messages are in various states
-    Helps us decide when to keep polling vs when we're done
+    helper to check how many messages are in various states
+    helps us decide when to keep polling vs when we're done
     """
     logger = get_run_logger()
     sqs_client = boto3.client('sqs', region_name='us-east-1')
@@ -73,14 +73,14 @@ def check_queue_metrics(queue_url):
     
     except ClientError as err:
         logger.warning(f"Could not fetch queue metrics: {err}")
-        return {'ready': 0, 'processing': 0, 'pending': 0, 'combined_total': 0}
+        raise
 
 
 @task
 def retrieve_all_fragments(queue_url):
     """
-    Step 2: Continuously poll the queue until we have all 21 message fragments
-    Each message has order_no and word attributes we need to extract
+    step 2 (continuously poll the queue until we have all 21 message fragments):
+    each message has order_no and word attributes we need to extract
     """
     logger = get_run_logger()
     sqs_client = boto3.client('sqs', region_name='us-east-1')
@@ -90,7 +90,7 @@ def retrieve_all_fragments(queue_url):
     timeout_seconds = 1200  # i'm giving it up to 20 min for all delays
     start_time = time.time()
     
-    logger.info("Beginning message collection...")
+    logger.info("Beginning message collection")
     
     # keep looping until i have all messages or timeout
     while len(fragments) < expected_count:
@@ -152,7 +152,7 @@ def retrieve_all_fragments(queue_url):
 @task
 def build_complete_message(fragments):
     """
-    Step 3: Sort the fragments by order number and join into final phrase
+    step 3 (sorting the fragments by order number and join into final phrase)
     """
     logger = get_run_logger()
     
@@ -178,13 +178,13 @@ def build_complete_message(fragments):
 @task(retries=2)
 def deliver_solution(phrase):
     """
-    Step 4: Send the final assembled phrase to the submission queue
-    Must include my computing ID and specify platform as 'prefect'
+    step 4 (sending the final assembled phrase to the submission queue):
+    must include my computing ID and specify platform as 'prefect'
     """
     logger = get_run_logger()
     sqs_client = boto3.client('sqs', region_name='us-east-1')
     
-    logger.info("Submitting solution...")
+    logger.info("Submitting solution")
     
     try:
         submit_response = sqs_client.send_message(
@@ -258,7 +258,6 @@ def main_pipeline():
     logger.info("="*60)
     
     return final_phrase
-
 
 # execute this when run directly
 if __name__ == "__main__":
